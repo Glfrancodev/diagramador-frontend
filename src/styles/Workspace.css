@@ -1,0 +1,53 @@
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.panel__top {
+  height: 50px;
+  background: #1f2937; /* Gris oscuro */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+}
+
+.panel__basic-actions button {
+  margin-left: 1rem;
+  background: #2563eb;
+  border: none;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.editor-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+#blocks {
+  width: 240px;
+  background: #f3f4f6;
+  border-right: 1px solid #d1d5db;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+#editor {
+  flex: 1;
+  background: white;
+  overflow-y: auto;
+}
+
+#styles {
+  width: 300px;
+  background: #f9fafb;
+  border-left: 1px solid #d1d5db;
+  overflow-y: auto;
+  padding: 10px;
+}

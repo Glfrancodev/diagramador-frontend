@@ -8,11 +8,11 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const navigate = useNavigate();
 
-  const login = async (email, password) => {
+  const login = async (correo, password) => {
     try {
-        const response = await axiosInstance.post('/auth/login', { correo: email, password });
+      const response = await axiosInstance.post('/auth/login', { correo, password });
       const { token } = response.data;
-      
+
       localStorage.setItem('token', token);
       setIsAuthenticated(true);
       navigate('/dashboard');
