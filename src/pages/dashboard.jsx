@@ -80,8 +80,10 @@ function Dashboard() {
   };
 
   const irAlProyecto = (idProyecto) => {
-    navigate(`/proyecto/${idProyecto}`);
+    localStorage.setItem('idProyecto', idProyecto); // 👈 Guardamos el idProyecto en localStorage
+    navigate(`/proyecto/${idProyecto}`); // Y navegamos
   };
+  
 
   const handleCrearProyecto = async () => {
     if (!nuevoNombre.trim()) {
