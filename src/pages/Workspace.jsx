@@ -207,6 +207,7 @@ function Workspace() {
     try {
       const response = await axiosInstance.get(`/proyectos/exportar/${idProyecto}`, {
         responseType: 'blob',
+        timeout: 300000 // 5 minutos
       });
 
       const blob = new Blob([response.data], { type: 'application/zip' });
