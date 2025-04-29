@@ -1,31 +1,49 @@
-import { createContext, useContext, useState } from 'react';
-import axiosInstance from '../services/axiosInstance';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useState } from "react";
+import axiosInstance from "../services/axiosInstance";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  /* ---------- estado ---------- */
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("token")
+  );
+
   const navigate = useNavigate();
 
+  /* ---------- login ---------- */
   const login = async (correo, password) => {
     try {
-      const response = await axiosInstance.post('/auth/login', { correo, password });
-      const { token } = response.data;
+      /* 1) petición de login */
+      const { data } = await axiosInstance.post("/auth/login", {
+        correo,
+        password,
+      });
 
-      localStorage.setItem('token', token);
+      /* 2) guarda el token */
+      localStorage.setItem("token", data.token);
+
+      /* 3) pide el perfil para obtener el nombre
+            (si tu API ya lo enviara en la respuesta de login,
+            bastaría con:  localStorage.setItem('nombre', data.usuario.nombre) ) */
+      const { data: perfil } = await axiosInstance.get("/usuarios/perfil");
+      localStorage.setItem("nombre", perfil.nombre || "");
+
       setIsAuthenticated(true);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
-      alert('Credenciales inválidas');
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error al iniciar sesión:", err);
+      alert("Credenciales inválidas");
     }
   };
 
+  /* ---------- logout ---------- */
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
+    localStorage.removeItem("nombre");   // 🔑 limpia también el nombre
     setIsAuthenticated(false);
-    navigate('/login');
+    navigate("/login");
   };
 
   return (

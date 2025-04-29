@@ -11,6 +11,7 @@
     "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "axios": "^1.9.0",
     "grapesjs": "^0.22.6",
     "grapesjs-blocks-basic": "^1.0.2",

@@ -1,358 +1,361 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import ProyectoCard from '../components/ProyectoCard';
-import axiosInstance from '../services/axiosInstance';
+import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../services/axiosInstance";
+import ProyectoCard from "../components/ProyectoCard";
+
+import {
+  ArrowRightOnRectangleIcon as LogoutIcon,
+  PlusIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  EllipsisHorizontalIcon,
+} from "@heroicons/react/24/solid";
 
 function Dashboard() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
+  const navigate   = useNavigate();
 
-  const [perfil, setPerfil] = useState(null);
-  const [misProyectos, setMisProyectos] = useState([]);
+  const [perfil, setPerfil]                         = useState(null);
+  const [misProyectos, setMisProyectos]             = useState([]);
   const [proyectosCompartidos, setProyectosCompartidos] = useState([]);
 
-  const [mostrarMisProyectos, setMostrarMisProyectos] = useState(false);
-  const [mostrarCompartidos, setMostrarCompartidos] = useState(false);
+  const [showMis, setShowMis]                       = useState(true);
+  const [showCompartidos, setShowCompartidos]       = useState(true);
 
-  const [modalCrear, setModalCrear] = useState(false);
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalInvitaciones, setModalInvitaciones] = useState(false);
+  const [modalCrear, setModalCrear]                 = useState(false);
+  const [modalEditar, setModalEditar]               = useState(false);
+  const [modalInvitaciones, setModalInvitaciones]   = useState(false);
 
-  const [nuevoNombre, setNuevoNombre] = useState('');
-  const [nuevaDescripcion, setNuevaDescripcion] = useState('');
-  const [proyectoEditar, setProyectoEditar] = useState(null);
+  const [nuevoNombre, setNuevoNombre]               = useState("");
+  const [nuevaDescripcion, setNuevaDescripcion]     = useState("");
+  const [proyectoEditar, setProyectoEditar]         = useState(null);
 
-  const [invitacionesPendientes, setInvitacionesPendientes] = useState([]);
+  const [invPendientes, setInvPendientes]           = useState([]);
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  /* ---------- carga inicial ---------- */
+  useEffect(() => { cargarDatos(); }, []);
 
   const cargarDatos = async () => {
     try {
-      const perfilResponse = await axiosInstance.get('/usuarios/perfil');
-      setPerfil(perfilResponse.data);
+      const { data: perfilSrv }      = await axiosInstance.get("/usuarios/perfil");
+      const { data: propios }        = await axiosInstance.get("/proyectos/mis-proyectos");
+      const { data: compartidos }    = await axiosInstance.get("/proyectos/invitados");
 
-      const proyectosPropiosResponse = await axiosInstance.get('/proyectos/mis-proyectos');
-      setMisProyectos(proyectosPropiosResponse.data);
+      /* ----- guarda el nombre/correo en localStorage ----- */
+      localStorage.setItem("nombre", perfilSrv.nombre || perfilSrv.nombre || "");
 
-      const proyectosInvitadosResponse = await axiosInstance.get('/proyectos/invitados');
-      setProyectosCompartidos(proyectosInvitadosResponse.data);
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      logout();
+      setPerfil(perfilSrv);
+      setMisProyectos(propios);
+      setProyectosCompartidos(compartidos);
+    } catch (err) {
+      console.error(err);
+      handleLogout();
     }
   };
 
-  const cargarInvitaciones = async () => {
+  /* ---------- logout que limpia localStorage ---------- */
+  const handleLogout = () => {
+    localStorage.removeItem("correo");
+    authLogout();
+  };
+
+  /* ---------- navegación ---------- */
+  const irAlProyecto = (id) => {
+    localStorage.setItem("idProyecto", id);
+    navigate(`/proyecto/${id}`);
+  };
+
+  /* ---------- CRUD proyecto ---------- */
+  const crearProyecto = async () => {
+    if (!nuevoNombre.trim()) return alert("El nombre es obligatorio");
     try {
-      const invitacionesResponse = await axiosInstance.get('/invitaciones/pendientes');
-      const invitaciones = invitacionesResponse.data;
-
-      const invitacionesEnriquecidas = await Promise.all(
-        invitaciones.map(async (inv) => {
-          try {
-            const proyectoResponse = await axiosInstance.get(`/proyectos/${inv.idProyecto}`);
-            const proyecto = proyectoResponse.data;
-
-            const usuarioResponse = await axiosInstance.get(`/usuarios/${proyecto.idUsuario}`);
-            const usuario = usuarioResponse.data;
-
-            return {
-              idInvitacion: inv.idInvitacion,
-              nombreProyecto: proyecto.nombre,
-              descripcionProyecto: proyecto.descripcion,
-              correoDueno: usuario.correo,
-              fechaInvitacion: inv.fechaInvitacion,
-            };
-          } catch (error) {
-            console.error('Error enriqueciendo invitación:', error);
-            return null;
-          }
-        })
-      );
-
-      setInvitacionesPendientes(invitacionesEnriquecidas.filter((inv) => inv !== null));
-    } catch (error) {
-      console.error('Error al cargar invitaciones:', error);
-    }
-  };
-
-  const irAlProyecto = (idProyecto) => {
-    localStorage.setItem('idProyecto', idProyecto); // 👈 Guardamos el idProyecto en localStorage
-    navigate(`/proyecto/${idProyecto}`); // Y navegamos
-  };
-  
-
-  const handleCrearProyecto = async () => {
-    if (!nuevoNombre.trim()) {
-      alert('El nombre del proyecto es obligatorio.');
-      return;
-    }
-
-    try {
-      await axiosInstance.post('/proyectos', {
-        nombre: nuevoNombre,
-        descripcion: nuevaDescripcion
-      });
+      await axiosInstance.post("/proyectos", { nombre: nuevoNombre, descripcion: nuevaDescripcion });
       setModalCrear(false);
-      setNuevoNombre('');
-      setNuevaDescripcion('');
+      setNuevoNombre("");
+      setNuevaDescripcion("");
       cargarDatos();
-    } catch (error) {
-      console.error('Error al crear proyecto:', error);
-      alert('Hubo un error al crear el proyecto.');
+    } catch (err) {
+      console.error(err);
+      alert("Error al crear proyecto");
     }
   };
 
-  const abrirModalEditar = (proyecto) => {
-    setProyectoEditar(proyecto);
-    setNuevoNombre(proyecto.nombre);
-    setNuevaDescripcion(proyecto.descripcion || '');
+  const abrirEditar = (p) => {
+    setProyectoEditar(p);
+    setNuevoNombre(p.nombre);
+    setNuevaDescripcion(p.descripcion || "");
     setModalEditar(true);
   };
 
-  const handleGuardarCambios = async () => {
-    if (!nuevoNombre.trim()) {
-      alert('El nombre del proyecto es obligatorio.');
-      return;
-    }
-
+  const guardarCambios = async () => {
+    if (!nuevoNombre.trim()) return alert("El nombre es obligatorio");
     try {
       await axiosInstance.put(`/proyectos/${proyectoEditar.idProyecto}`, {
         nombre: nuevoNombre,
-        descripcion: nuevaDescripcion
+        descripcion: nuevaDescripcion,
       });
       setModalEditar(false);
       setProyectoEditar(null);
-      setNuevoNombre('');
-      setNuevaDescripcion('');
       cargarDatos();
-    } catch (error) {
-      console.error('Error al actualizar proyecto:', error);
-      alert('Hubo un error al actualizar el proyecto.');
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar proyecto");
     }
   };
 
-  const handleEliminarProyecto = async (proyecto) => {
-    if (!window.confirm('¿Estás seguro que quieres eliminar este proyecto?')) {
-      return;
-    }
-
+  const eliminarProyecto = async (p) => {
+    if (!window.confirm("¿Eliminar proyecto definitivamente?")) return;
     try {
-      await axiosInstance.delete(`/proyectos/${proyecto.idProyecto}`);
+      await axiosInstance.delete(`/proyectos/${p.idProyecto}`);
       cargarDatos();
-    } catch (error) {
-      console.error('Error al eliminar proyecto:', error);
-      alert('Hubo un error al eliminar el proyecto.');
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar");
     }
   };
 
-  const aceptarInvitacion = async (idInvitacion) => {
+  /* ---------- invitaciones ---------- */
+  const cargarInvitaciones = async () => {
+    const { data } = await axiosInstance.get("/invitaciones/pendientes");
+    setInvPendientes(data);
+  };
+
+  const aceptarInv = (id) => actualizarInv(id, "aceptada");
+  const rechazarInv = (id) => actualizarInv(id, "rechazada");
+
+  const actualizarInv = async (id, estado) => {
     try {
-      await axiosInstance.put(`/invitaciones/${idInvitacion}`, { estado: 'aceptada' });
+      await axiosInstance.put(`/invitaciones/${id}`, { estado });
       cargarDatos();
       cargarInvitaciones();
-    } catch (error) {
-      console.error('Error al aceptar invitación:', error);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  const rechazarInvitacion = async (idInvitacion) => {
-    try {
-      await axiosInstance.put(`/invitaciones/${idInvitacion}`, { estado: 'rechazada' });
-      cargarDatos();
-      cargarInvitaciones();
-    } catch (error) {
-      console.error('Error al rechazar invitación:', error);
-    }
-  };
-
-  const abrirModalInvitaciones = async () => {
-    await cargarInvitaciones();
-    setModalInvitaciones(true);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded shadow mb-6">
-        <div className="text-center sm:text-left">
-          {perfil && (
-            <>
-              <p className="text-xl font-semibold">{perfil.correo}</p>
-              <p className="text-sm text-gray-500">UUID: {perfil.idUsuario}</p>
-            </>
-          )}
+  /* ---------- helpers UI ---------- */
+  const Section = ({ title, show, toggle, children, extraBtn }) => (
+    <section className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow mb-6">
+      <header className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+        <div className="flex items-center gap-2">
+          {extraBtn}
+          <button
+            onClick={toggle}
+            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+          >
+            {show ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+          </button>
         </div>
+      </header>
+      {show && children}
+    </section>
+  );
+
+  /* ---------- render ---------- */
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 transition-colors px-4 pb-16">
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6">
+        <div className="text-center sm:text-left">
+          <p className="text-2xl font-bold text-gray-800 dark:text-white">{perfil?.correo}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+            UUID: {perfil?.idUsuario}
+          </p>
+        </div>
+
         <button
-          onClick={logout}
-          className="mt-4 sm:mt-0 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition"
+          onClick={handleLogout}
+          className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg shadow transition-colors"
         >
-          Cerrar Sesión
+          <LogoutIcon className="w-5 h-5" /> Salir
         </button>
       </header>
 
       {/* Mis Proyectos */}
-      <section className="bg-white p-4 rounded shadow mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Mis Proyectos</h2>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setModalCrear(true)}
-              className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-600 transition"
-            >
-              +
-            </button>
-            <button
-              onClick={() => setMostrarMisProyectos(!mostrarMisProyectos)}
-              className="text-xl"
-            >
-              {mostrarMisProyectos ? '▲' : '▼'}
-            </button>
-          </div>
-        </div>
-
-        {mostrarMisProyectos && (
-          <div className="space-y-4">
-            {misProyectos.length === 0 ? (
-              <p className="text-gray-500">No tienes proyectos creados.</p>
-            ) : (
-              misProyectos.map((proyecto) => (
-                <ProyectoCard
-                  key={proyecto.idProyecto}
-                  proyecto={proyecto}
-                  onClick={() => irAlProyecto(proyecto.idProyecto)}
-                  mostrarAcciones={true}
-                  onEditar={() => abrirModalEditar(proyecto)}
-                  onEliminar={() => handleEliminarProyecto(proyecto)}
-                />
-              ))
-            )}
+      <Section
+        title="Mis proyectos"
+        show={showMis}
+        toggle={() => setShowMis(!showMis)}
+        extraBtn={
+          <button
+            onClick={() => setModalCrear(true)}
+            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow
+                       transition-colors"
+            title="Nuevo proyecto"
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
+        }
+      >
+        {misProyectos.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">No has creado proyectos todavía.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {misProyectos.map((p) => (
+              <ProyectoCard
+                key={p.idProyecto}
+                proyecto={p}
+                onClick={() => irAlProyecto(p.idProyecto)}
+                mostrarAcciones
+                onEditar={() => abrirEditar(p)}
+                onEliminar={() => eliminarProyecto(p)}
+              />
+            ))}
           </div>
         )}
-      </section>
+      </Section>
 
-      {/* Proyectos Compartidos */}
-      <section className="bg-white p-4 rounded shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Proyectos que te compartieron</h2>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={abrirModalInvitaciones}
-              className="bg-gray-300 text-black rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-400 transition"
-            >
-              ...
-            </button>
-            <button
-              onClick={() => setMostrarCompartidos(!mostrarCompartidos)}
-              className="text-xl"
-            >
-              {mostrarCompartidos ? '▲' : '▼'}
-            </button>
-          </div>
-        </div>
-
-        {mostrarCompartidos && (
-          <div className="space-y-4">
-            {proyectosCompartidos.length === 0 ? (
-              <p className="text-gray-500">No tienes proyectos compartidos.</p>
-            ) : (
-              proyectosCompartidos.map((proyecto) => (
-                <ProyectoCard
-                  key={proyecto.idProyecto}
-                  proyecto={proyecto}
-                  onClick={() => irAlProyecto(proyecto.idProyecto)}
-                  mostrarAcciones={false}
-                />
-              ))
-            )}
+      {/* Proyectos compartidos */}
+      <Section
+        title="Proyectos compartidos contigo"
+        show={showCompartidos}
+        toggle={() => setShowCompartidos(!showCompartidos)}
+        extraBtn={
+          <button
+            onClick={() => {
+              cargarInvitaciones();
+              setModalInvitaciones(true);
+            }}
+            className="p-1.5 bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600
+                       text-gray-800 dark:text-gray-100 rounded-full"
+            title="Invitaciones pendientes"
+          >
+            <EllipsisHorizontalIcon className="w-5 h-5" />
+          </button>
+        }
+      >
+        {proyectosCompartidos.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">No tienes proyectos compartidos.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {proyectosCompartidos.map((p) => (
+              <ProyectoCard
+                key={p.idProyecto}
+                proyecto={p}
+                onClick={() => irAlProyecto(p.idProyecto)}
+              />
+            ))}
           </div>
         )}
-      </section>
+      </Section>
 
-      {/* Modal Crear Proyecto */}
+      {/* ==================== MODALES ==================== */}
+      {/* crear */}
       {modalCrear && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded shadow-md w-96">
-            <h2 className="text-2xl font-bold mb-4 text-center">Nuevo Proyecto</h2>
-            <input
-              type="text"
-              placeholder="Nombre del proyecto"
-              value={nuevoNombre}
-              onChange={(e) => setNuevoNombre(e.target.value)}
-              className="w-full mb-4 p-2 border rounded"
-            />
-            <textarea
-              placeholder="Descripción del proyecto"
-              value={nuevaDescripcion}
-              onChange={(e) => setNuevaDescripcion(e.target.value)}
-              className="w-full mb-4 p-2 border rounded"
-            />
-            <div className="flex justify-between">
-              <button
-                onClick={() => setModalCrear(false)}
-                className="bg-gray-300 text-black py-2 px-4 rounded hover:bg-gray-400 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCrearProyecto}
-                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
-              >
-                Crear
-              </button>
-            </div>
+        <Modal onClose={() => setModalCrear(false)} title="Nuevo proyecto">
+          <input
+            className="w-full mb-4 p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+            placeholder="Nombre"
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+          />
+          <textarea
+            className="w-full mb-4 p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+            placeholder="Descripción"
+            value={nuevaDescripcion}
+            onChange={(e) => setNuevaDescripcion(e.target.value)}
+          />
+          <div className="flex justify-end gap-3">
+            <Button outline onClick={() => setModalCrear(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={crearProyecto}>Crear</Button>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* Modal Invitaciones Pendientes */}
-      {modalInvitaciones && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded shadow-md w-[28rem] max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-center">Invitaciones Pendientes</h2>
+      {/* editar */}
+      {modalEditar && (
+        <Modal onClose={() => setModalEditar(false)} title="Editar proyecto">
+          <input
+            className="w-full mb-4 p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+            placeholder="Nombre"
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+          />
+          <textarea
+            className="w-full mb-4 p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+            placeholder="Descripción"
+            value={nuevaDescripcion}
+            onChange={(e) => setNuevaDescripcion(e.target.value)}
+          />
+          <div className="flex justify-end gap-3">
+            <Button outline onClick={() => setModalEditar(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={guardarCambios}>Guardar</Button>
+          </div>
+        </Modal>
+      )}
 
-            {invitacionesPendientes.length === 0 ? (
-              <p className="text-gray-500 text-center">No tienes invitaciones pendientes.</p>
-            ) : (
-              invitacionesPendientes.map((inv) => (
-                <div key={inv.idInvitacion} className="mb-4 p-3 border rounded shadow-sm">
-                  <p className="font-semibold">{inv.nombreProyecto}</p>
-                  <p className="text-sm text-gray-500">{inv.descripcionProyecto}</p>
-                  <p className="text-xs text-gray-400 mb-2">Dueño: {inv.correoDueno}</p>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => aceptarInvitacion(inv.idInvitacion)}
-                      className="bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 transition"
-                    >
+      {/* invitaciones */}
+      {modalInvitaciones && (
+        <Modal onClose={() => setModalInvitaciones(false)} title="Invitaciones pendientes">
+          {invPendientes.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400 text-center">
+              No tienes invitaciones pendientes.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {invPendientes.map((inv) => (
+                <div
+                  key={inv.idInvitacion}
+                  className="border rounded-lg p-4 flex flex-col gap-2 dark:border-gray-700"
+                >
+                  <header className="font-semibold">{inv.nombreProyecto}</header>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {inv.descripcionProyecto}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Propietario: {inv.correoDueno}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button className="bg-green-500 hover:bg-green-600" onClick={() => aceptarInv(inv.idInvitacion)}>
                       Aceptar
-                    </button>
-                    <button
-                      onClick={() => rechazarInvitacion(inv.idInvitacion)}
-                      className="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 transition"
-                    >
+                    </Button>
+                    <Button className="bg-red-500 hover:bg-red-600" onClick={() => rechazarInv(inv.idInvitacion)}>
                       Rechazar
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              ))
-            )}
-
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => setModalInvitaciones(false)}
-                className="bg-gray-300 text-black py-2 px-6 rounded hover:bg-gray-400 transition"
-              >
-                Cerrar
-              </button>
+              ))}
             </div>
-          </div>
-        </div>
+          )}
+        </Modal>
       )}
     </div>
   );
 }
+
+/* ---------- componentes utilitarios ---------- */
+const Modal = ({ title, onClose, children }) => (
+  <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-md p-6">
+      <header className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{title}</h3>
+        <button onClick={onClose} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800">
+          ✕
+        </button>
+      </header>
+      {children}
+    </div>
+  </div>
+);
+
+const Button = ({ outline, className = "", ...props }) => {
+  const base =
+    "py-2 px-4 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const filled =
+    "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-400";
+  const outlined =
+    "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-gray-400";
+
+  return (
+    <button
+      className={`${base} ${outline ? outlined : filled} ${className}`}
+      {...props}
+    />
+  );
+};
 
 export default Dashboard;
