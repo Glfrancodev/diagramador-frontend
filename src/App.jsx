@@ -4,7 +4,6 @@ import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/login';
 import Dashboard from './pages/dashboard';
 import Workspace from './pages/workspace'; // 👈 importa Workspace
-import SocketTest from './pages/SocketTest'; // 👈 importa SocketTest
 import { DndProvider } from 'react-dnd'; // 👈
 import { HTML5Backend } from 'react-dnd-html5-backend'; // 👈
 
@@ -17,7 +16,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/proyecto/:idProyecto" element={<PrivateRoute><Workspace /></PrivateRoute>} />
-            <Route path="/socket-test" element={<SocketTest />} /> {/* Agrega esta ruta para probar WebSocket */}
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </DndProvider>
