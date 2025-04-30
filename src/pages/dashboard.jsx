@@ -38,6 +38,11 @@ const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las
   const [resultadoImportacion, setResultadoImportacion] = useState(null);
   const [clavesPrimarias, setClavesPrimarias] = useState({});
 
+  const [modalImportarFoto, setModalImportarFoto] = useState(false);
+  const [fotoBoceto, setFotoBoceto] = useState(null);
+  const [resultadoBoceto, setResultadoBoceto] = useState(null);
+  const [clavesPrimariasFoto, setClavesPrimariasFoto] = useState({});
+
 
   const [invPendientes, setInvPendientes]           = useState([]);
 
@@ -186,13 +191,23 @@ const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las
         toggle={() => setShowMis(!showMis)}
         extraBtn={
           <div className="flex gap-2">
-            <button
-              onClick={() => setModalImportar(true)}
-              className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow transition-colors"
-              title="Importar desde XMI"
-            >
-              <span className="text-sm font-bold">XMI</span>
-            </button>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setModalImportar(true)}
+                className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow transition-colors"
+                title="Importar desde XMI"
+              >
+                <span className="text-sm font-bold">XMI</span>
+              </button>
+              <button
+                onClick={() => setModalImportarFoto(true)}
+                className="p-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow transition-colors"
+                title="Importar desde imagen"
+              >
+                <span className="text-sm font-bold">IMG</span>
+              </button>
+            </div>
             <button
               onClick={() => setModalCrear(true)}
               className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow transition-colors"
@@ -200,6 +215,7 @@ const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las
             >
               <PlusIcon className="w-5 h-5" />
             </button>
+
           </div>
         }
         
@@ -305,6 +321,164 @@ const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las
           </div>
         </Modal>
       )}
+{modalImportarFoto && (
+  <Modal title="Importar imagen de boceto" onClose={() => setModalImportarFoto(false)}>
+    {!resultadoBoceto ? (
+      <>
+        <input
+          type="file"
+          accept="image/png,image/jpeg"
+          onChange={(e) => setFotoBoceto(e.target.files[0])}
+          className="w-full mb-4"
+        />
+        <Button
+          onClick={async () => {
+            if (!fotoBoceto) return alert("Selecciona una imagen PNG o JPG");
+
+            const formData = new FormData();
+            formData.append("imagen", fotoBoceto);
+
+            try {
+              const { data } = await axiosInstance.post("/proyectos/importar-boceto", formData);
+              setResultadoBoceto(data.estructura);
+              const inicial = {};
+              data.estructura.clases.forEach(c => {
+                const primerAttr = c.atributos?.[0]?.nombre || "";
+                if (primerAttr) inicial[c.nombre] = primerAttr;
+              });
+              setClavesPrimariasFoto(inicial);
+              setRelaciones(data.estructura.relaciones || []);
+            } catch (err) {
+              console.error(err);
+              alert("Error al analizar imagen");
+            }
+          }}
+        >
+          Analizar foto
+        </Button>
+      </>
+    ) : (
+      <>
+        <p className="font-semibold mb-2">Selecciona la clave primaria de cada clase:</p>
+        <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
+          {resultadoBoceto.clases.map((clase) => (
+            <div key={clase.nombre}>
+              <label className="font-medium">{clase.nombre}</label>
+              <select
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+                value={clavesPrimariasFoto[clase.nombre]}
+                onChange={(e) =>
+                  setClavesPrimariasFoto({ ...clavesPrimariasFoto, [clase.nombre]: e.target.value })
+                }
+              >
+                {clase.atributos.map((attr) => (
+                  <option key={attr.nombre} value={attr.nombre}>{attr.nombre}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3 flex-wrap">
+          <Button outline onClick={() => setModalImportarFoto(false)}>Cancelar</Button>
+
+          <Button
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.post("/proyectos/exportar-crud-simulado", {
+                  clases: resultadoBoceto.clases,
+                  llavesPrimarias: clavesPrimariasFoto,
+                  relaciones: relaciones,
+                }, { responseType: 'blob' });
+
+                const blob = new Blob([response.data], { type: 'application/zip' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'proyectoAngular.zip';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                setModalImportarFoto(false);
+                setResultadoBoceto(null);
+                setFotoBoceto(null);
+                setClavesPrimariasFoto({});
+                setRelaciones([]);
+              } catch (err) {
+                console.error(err);
+                alert("Error al exportar proyecto");
+              }
+            }}
+          >
+            Exportar proyecto Angular
+          </Button>
+
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={async () => {
+              try {
+                const { data } = await axiosInstance.post("/proyectos", {
+                  nombre: resultadoBoceto.clases[0]?.nombre || "Nuevo Proyecto",
+                  descripcion: "Generado desde imagen",
+                  contenido: JSON.stringify({
+                    pestañas: resultadoBoceto.clases.map((clase, index) => ({
+                      id: `tab-${index + 1}`,
+                      name: clase.nombre,
+                      html: `
+                        <div style="display:flex;min-height:100vh;width:100%">
+                          <aside style="flex:3;background:#1f2937;color:#fff;display:flex;flex-direction:column;padding:1rem">
+                            <h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:1rem">Menú</h2>
+                            <nav style="display:flex;flex-direction:column;gap:.5rem">
+                              ${resultadoBoceto.clases.map(c => `<a href="#">${c.nombre}</a>`).join("")}
+                            </nav>
+                          </aside>
+                          <main style="flex:7;padding:1rem;box-sizing:border-box;min-height:100vh">
+                            <p style="text-align:center;font-size:20px">CRUD ${clase.nombre.toUpperCase()}</p>
+                            ${clase.atributos.map(attr => `
+                              <div style="display:flex;margin:10px 0">
+                                <div style="flex:1;padding:10px;border:1px dashed #ccc">${attr.nombre}</div>
+                                <div style="flex:1;padding:10px;border:1px dashed #ccc">
+                                  <label><input type="text" placeholder="Escribe aquí..."/></label>
+                                </div>
+                              </div>
+                            `).join('')}
+                            <div style="display:flex;margin:10px 0">
+                              <div style="flex:1;padding:10px;border:1px dashed #ccc">
+                                <button class="gjs-button">Agregar${clase.nombre}Nuevo</button>
+                              </div>
+                            </div>
+                            <p>Lista de ${clase.nombre}s</p>
+                            <p>No hay elementos agregados en su lista</p>
+                          </main>
+                        </div>`,
+                      css: ""
+                    })),
+                    clases: resultadoBoceto.clases,
+                    relaciones: resultadoBoceto.relaciones || [],
+                    clavesPrimarias: clavesPrimariasFoto
+                  })
+                });
+
+                setModalImportarFoto(false);
+                setResultadoBoceto(null);
+                setFotoBoceto(null);
+                setClavesPrimariasFoto({});
+                setRelaciones([]);
+                cargarDatos();
+              } catch (err) {
+                console.error(err);
+                alert("❌ Error al crear proyecto");
+              }
+            }}
+          >
+            Crear proyecto diagramador
+          </Button>
+        </div>
+      </>
+    )}
+  </Modal>
+)}
+
 
 {modalImportar && (
   <Modal title="Importar archivo XMI" onClose={() => setModalImportar(false)}>

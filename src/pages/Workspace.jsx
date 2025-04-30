@@ -4,6 +4,8 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import axiosInstance from "../services/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import pluginTable from 'grapesjs-table';
+
 
 /* ---------- utilidades ---------- */
 const throttle = (fn, delay = 60) => {
@@ -225,11 +227,13 @@ useEffect(()=>{
 /* ---------- GrapesJS ---------- */
 useEffect(()=>{
   const editor = grapesjs.init({
-    container:"#editor",
-    width:"100%",
-    height:"calc(100vh - 102px)",
-    storageManager:false
+    container: '#editor',
+    plugins: [pluginTable],
+    pluginsOpts: {
+      [pluginTable]: {}
+    }
   });
+  
   editorRef.current   = editor;
   editorDivRef.current= document.getElementById("editor");
 
@@ -254,6 +258,21 @@ useEffect(()=>{
     .gjs-row{margin:0!important}
     .gjs-container{margin:0!important;padding:0!important}
   </style>`);
+  editor.addComponents(`<style>
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    .gjs-button {
+      padding: 8px 16px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>`);
+  
 
   /* ---------- tipos ---------- */
   const colBase={tagName:"div",droppable:true,draggable:true,classes:["gjs-column"],
@@ -282,17 +301,49 @@ useEffect(()=>{
       {type:"column-3-7-left"},{type:"column-3-7-right"}]}});
   bm.add("text",{label:"Text",category:"Basic",
     content:"<p>Insert your text here</p>"});
+// ✅ InputBox (campo de texto)
+bm.add("custom-inputbox", {
+  label: "InputBox",
+  category: "Basic",
+  content: `<label style="display:flex;flex-direction:column;gap:4px">
+    <input type="text" placeholder="Escribe aquí..." />
+  </label>`
+});
+bm.add("custom-button", {
+  label: "Button",
+  category: "Basic",
+  content: '<button class="gjs-button">Click me</button>'
+});
+
+bm.add("custom-selector", {
+  label: "Selector",
+  category: "Basic",
+  content: `<select>
+    <option>Opción 1</option>
+    <option>Opción 2</option>
+  </select>`
+});
+bm.add("custom-checkbox", {
+  label: "CheckBox",
+  category: "Basic",
+  content: `<label style="display:flex;align-items:center;gap:0.5rem">
+    <input type="checkbox"/> Acepto términos
+  </label>`
+});
   bm.add("link",{label:"Link",category:"Basic",
     content:'<a href="#">Insert link</a>'});
   bm.add("image",{label:"Image",category:"Basic",content:{type:"image"}});
   bm.add("video",{label:"Video",category:"Basic",content:{type:"video"}});
   bm.add("map",{label:"Map",category:"Basic",content:{type:"map"}});
-  bm.add("link-block",{label:"Link Block",category:"Basic",
-    content:{type:"link",editable:true,droppable:true}});
-  bm.add("quote",{label:"Quote",category:"Basic",
-    content:"<blockquote>Insert quote here</blockquote>"});
-  bm.add("text-section",{label:"Text Section",category:"Basic",
-    content:"<section><h1>Title</h1><p>Insert your text here</p></section>"});
+
+
+// ✅ Selector (spinner)
+
+
+// ✅ CheckBox
+
+
+
   bm.add("layout-sidebar",{label:"Sidebar Layout",category:"Layout",
     content:`<div style="display:flex;min-height:100vh;width:100%">
       <aside style="flex:3;background:#1f2937;color:#fff;display:flex;flex-direction:column;padding:1rem">

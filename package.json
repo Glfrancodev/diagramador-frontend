@@ -13,9 +13,12 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.9.0",
-    "grapesjs": "^0.22.6",
+    "grapesjs": "^0.17.29",
     "grapesjs-blocks-basic": "^1.0.2",
+    "grapesjs-blocks-table": "^1.1.2",
     "grapesjs-preset-webpage": "^1.0.3",
+    "grapesjs-table": "^1.0.8",
+    "handsontable": "^15.3.0",
     "react": "^19.0.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
