@@ -412,72 +412,12 @@ const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las
           >
             Exportar proyecto Angular
           </Button>
-
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={async () => {
-              try {
-                const { data } = await axiosInstance.post("/proyectos", {
-                  nombre: resultadoBoceto.clases[0]?.nombre || "Nuevo Proyecto",
-                  descripcion: "Generado desde imagen",
-                  contenido: JSON.stringify({
-                    pestañas: resultadoBoceto.clases.map((clase, index) => ({
-                      id: `tab-${index + 1}`,
-                      name: clase.nombre,
-                      html: `
-                        <div style="display:flex;min-height:100vh;width:100%">
-                          <aside style="flex:3;background:#1f2937;color:#fff;display:flex;flex-direction:column;padding:1rem">
-                            <h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:1rem">Menú</h2>
-                            <nav style="display:flex;flex-direction:column;gap:.5rem">
-                              ${resultadoBoceto.clases.map(c => `<a href="#">${c.nombre}</a>`).join("")}
-                            </nav>
-                          </aside>
-                          <main style="flex:7;padding:1rem;box-sizing:border-box;min-height:100vh">
-                            <p style="text-align:center;font-size:20px">CRUD ${clase.nombre.toUpperCase()}</p>
-                            ${clase.atributos.map(attr => `
-                              <div style="display:flex;margin:10px 0">
-                                <div style="flex:1;padding:10px;border:1px dashed #ccc">${attr.nombre}</div>
-                                <div style="flex:1;padding:10px;border:1px dashed #ccc">
-                                  <label><input type="text" placeholder="Escribe aquí..."/></label>
-                                </div>
-                              </div>
-                            `).join('')}
-                            <div style="display:flex;margin:10px 0">
-                              <div style="flex:1;padding:10px;border:1px dashed #ccc">
-                                <button class="gjs-button">Agregar${clase.nombre}Nuevo</button>
-                              </div>
-                            </div>
-                            <p>Lista de ${clase.nombre}s</p>
-                            <p>No hay elementos agregados en su lista</p>
-                          </main>
-                        </div>`,
-                      css: ""
-                    })),
-                    clases: resultadoBoceto.clases,
-                    relaciones: resultadoBoceto.relaciones || [],
-                    clavesPrimarias: clavesPrimariasFoto
-                  })
-                });
-
-                setModalImportarFoto(false);
-                setResultadoBoceto(null);
-                setFotoBoceto(null);
-                setClavesPrimariasFoto({});
-                setRelaciones([]);
-                cargarDatos();
-              } catch (err) {
-                console.error(err);
-                alert("❌ Error al crear proyecto");
-              }
-            }}
-          >
-            Crear proyecto diagramador
-          </Button>
         </div>
       </>
     )}
   </Modal>
 )}
+
 
 
 {modalImportar && (
