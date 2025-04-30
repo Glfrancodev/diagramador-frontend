@@ -3,7 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/login';
 import Dashboard from './pages/dashboard';
-import Workspace from './pages/workspace'; // 👈 importa Workspace
+import Workspace from './pages/workspace';
 import { DndProvider } from 'react-dnd'; // 👈
 import { HTML5Backend } from 'react-dnd-html5-backend'; // 👈
 
