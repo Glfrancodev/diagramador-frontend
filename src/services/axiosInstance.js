@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'https://diagramador-backend.railway.app/api',
+  baseURL: 'https://diagramador-backend-production.up.railway.app/api',
 });
 
 // Interceptor para incluir token automáticamente

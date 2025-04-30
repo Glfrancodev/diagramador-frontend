@@ -108,7 +108,7 @@ const emitContentSnapshot = throttle(() => {
 
 /* ---------- socket ---------- */
 useEffect(() => {
-  const sock = io("https://diagramador-backend.railway.app");
+  const sock = io("https://diagramador-backend-production.up.railway.app");
   socketRef.current = sock;
 
   sock.on("connect", () => {
