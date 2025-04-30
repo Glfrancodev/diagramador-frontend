@@ -187,7 +187,7 @@ useEffect(() => {
   return ()=> sock.disconnect();
 }, [projectId]);
 
-/* ---------- emitir mi cursor ---------- */
+/* ---------- emitir mi cursor --------- */
 useEffect(()=>{
   const sendPos = throttle(e=>{
     if(!socketRef.current?.connected) return;
