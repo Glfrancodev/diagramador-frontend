@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../services/axiosInstance";
 import ProyectoCard from "../components/ProyectoCard";
 
+
 import {
   ArrowRightOnRectangleIcon as LogoutIcon,
   PlusIcon,
@@ -15,6 +16,7 @@ import {
 function Dashboard() {
   const { logout: authLogout } = useAuth();
   const navigate   = useNavigate();
+const [relaciones, setRelaciones] = useState([]); // Agregado para almacenar las relaciones
 
   const [perfil, setPerfil]                         = useState(null);
   const [misProyectos, setMisProyectos]             = useState([]);
@@ -26,10 +28,16 @@ function Dashboard() {
   const [modalCrear, setModalCrear]                 = useState(false);
   const [modalEditar, setModalEditar]               = useState(false);
   const [modalInvitaciones, setModalInvitaciones]   = useState(false);
+  const [modalImportar, setModalImportar] = useState(false);
+
 
   const [nuevoNombre, setNuevoNombre]               = useState("");
   const [nuevaDescripcion, setNuevaDescripcion]     = useState("");
   const [proyectoEditar, setProyectoEditar]         = useState(null);
+  const [archivoXMI, setArchivoXMI] = useState(null);
+  const [resultadoImportacion, setResultadoImportacion] = useState(null);
+  const [clavesPrimarias, setClavesPrimarias] = useState({});
+
 
   const [invPendientes, setInvPendientes]           = useState([]);
 
@@ -177,15 +185,25 @@ function Dashboard() {
         show={showMis}
         toggle={() => setShowMis(!showMis)}
         extraBtn={
-          <button
-            onClick={() => setModalCrear(true)}
-            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow
-                       transition-colors"
-            title="Nuevo proyecto"
-          >
-            <PlusIcon className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setModalImportar(true)}
+              className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow transition-colors"
+              title="Importar desde XMI"
+            >
+              <span className="text-sm font-bold">XMI</span>
+            </button>
+            <button
+              onClick={() => setModalCrear(true)}
+              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow transition-colors"
+              title="Nuevo proyecto"
+            >
+              <PlusIcon className="w-5 h-5" />
+            </button>
+          </div>
         }
+        
+        
       >
         {misProyectos.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400">No has creado proyectos todavía.</p>
@@ -287,6 +305,104 @@ function Dashboard() {
           </div>
         </Modal>
       )}
+
+{modalImportar && (
+  <Modal title="Importar archivo XMI" onClose={() => setModalImportar(false)}>
+    {!resultadoImportacion ? (
+      <>
+        <input
+          type="file"
+          accept=".xmi"
+          onChange={(e) => setArchivoXMI(e.target.files[0])}
+          className="w-full mb-4"
+        />
+        <Button
+          onClick={async () => {
+            if (!archivoXMI) return alert("Selecciona un archivo .xmi");
+            const formData = new FormData();
+            formData.append("archivo", archivoXMI);
+            try {
+              const { data } = await axiosInstance.post("/xmi/importar-xmi", formData);
+              setResultadoImportacion(data);
+              const inicial = {};
+              data.clases.forEach(c => {
+                const primerAttr = c.atributos?.[0]?.nombre || "";
+                if (primerAttr) inicial[c.nombre] = primerAttr;
+              });
+              setClavesPrimarias(inicial);
+              setRelaciones(data.relaciones || []); // Guardar las relaciones cuando se analiza el archivo XMI
+            } catch (err) {
+              console.error(err);
+              alert("Error al analizar archivo XMI");
+            }
+          }}
+        >
+          Analizar archivo
+        </Button>
+      </>
+    ) : (
+      <>
+        <p className="font-semibold mb-2">Selecciona la clave primaria de cada clase:</p>
+        <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
+          {resultadoImportacion.clases.map((clase) => (
+            <div key={clase.nombre}>
+              <label className="font-medium">{clase.nombre}</label>
+              <select
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+                value={clavesPrimarias[clase.nombre]}
+                onChange={(e) =>
+                  setClavesPrimarias({ ...clavesPrimarias, [clase.nombre]: e.target.value })
+                }
+              >
+                {clase.atributos.map((attr) => (
+                  <option key={attr.nombre} value={attr.nombre}>{attr.nombre}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button outline onClick={() => setModalImportar(false)}>Cancelar</Button>
+          <Button
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.post("/proyectos/exportar-crud-simulado", {
+                  clases: resultadoImportacion.clases,  // Enviar las clases
+                  llavesPrimarias: clavesPrimarias,      // Enviar las llaves primarias
+                  relaciones: relaciones,                // Enviar las relaciones
+                }, { responseType: 'blob' });
+
+                const blob = new Blob([response.data], { type: 'application/zip' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'proyectoAngular.zip';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                setModalImportar(false);
+                setResultadoImportacion(null);
+                setArchivoXMI(null);
+                setClavesPrimarias({});
+                setRelaciones([]);  // Limpiar las relaciones después de la exportación
+
+              } catch (err) {
+                console.error(err);
+                alert("Error al exportar el proyecto simulado");
+              }
+            }}
+          >
+            Exportar proyecto Angular
+          </Button>
+        </div>
+      </>
+    )}
+  </Modal>
+)}
+
+
+
 
       {/* invitaciones */}
       {modalInvitaciones && (
