@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../utils/axiosInstance"; // Asegúrate de tener esta configuración de Axios
+import axiosInstance from "../services/axiosInstance"; // Asegúrate de tener esta configuración de Axios
 
 function Register() {
   const [name, setName] = useState("");
